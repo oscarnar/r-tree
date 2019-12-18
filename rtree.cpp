@@ -2,6 +2,7 @@
 #include <vector>
 #include <math.h>
 #include <algorithm>
+#include <fstream>
 using namespace std;
 
 class Point{
@@ -326,6 +327,55 @@ public:
             }
         }
     }
+    void print_dot(Node* node,ostream &os){
+        if(node->is_leaf){
+            cout<<"dot leaf"<<endl;
+            int x1=node->points[0].x;
+            int y1=node->points[0].y;
+            os<<"parent"<<x1<<y1<<node->deep<<"[\n"<<"shape=plaintext"<<endl;
+            os<<"label=<\n"<<"<table border='1' cellborder='1'>"<<endl;
+            os<<"<tr>";
+            for(int i=0; i<node->points.size(); i++){
+                int x=node->points[i].x;
+                int y=node->points[i].y;
+                os<<"<td port='port"<<x<<y<<"'>\""<<x<<","<<y<<"\"</td>";
+            }
+            os<<"</tr></table>\n"<<">];"<<endl;
+        }else{
+            cout<<"dot mbr"<<endl;
+            int x1=node->mbrs[0].vertices[0].x;
+            int y1=node->mbrs[0].vertices[0].y;
+            os<<"parent"<<x1<<y1<<node->deep<<"[\n"<<"shape=plaintext"<<endl;
+            os<<"label=<\n"<<"<table border='1' cellborder='1'>"<<endl;
+            os<<"<tr>";
+            for(int i=0; i<node->mbrs.size(); i++){
+                int x=node->mbrs[i].vertices[0].x;
+                int y=node->mbrs[i].vertices[0].y;
+                os<<"<td port='port"<<x<<y<<"'>"<<"\"MBR: "<<x<<","<<y<<"\"</td>";
+            }
+            os<<"</tr></table>\n"<<">];"<<endl;
+            for(int i=0; i<node->mbrs.size(); i++){
+                int x=node->mbrs[i].vertices[0].x;
+                int y=node->mbrs[i].vertices[0].y;
+                print_dot(node->mbrs[i].child,os);
+                os<<"parent"<<x1<<y1<<node->deep<<":port"<<x<<y<<"->";
+                if(node->mbrs[0].child->is_leaf == true){
+                    int x = node->mbrs[i].child->points[0].x;
+                    int y = node->mbrs[i].child->points[0].y;
+                    os<<"parent"<<x<<y<<node->deep + 1<<";"<<endl;
+                }else{
+                    int x = node->mbrs[i].child->mbrs[0].vertices[0].x;
+                    int y = node->mbrs[i].child->mbrs[0].vertices[0].y;
+                    os<<"parent"<<x<<y<<node->deep + 1<<";"<<endl;
+                }
+            }
+        }
+    }
+    void print_dot(ostream &os){
+        os<<"digraph H {"<<endl;
+        print_dot(this->root,os);
+        os<<"}"<<endl;
+    }
     void print(){
         print(this->root);
     }
@@ -390,5 +440,7 @@ int main(){
     for(int i=0; i<range.size(); i++){
         cout<<range[i].x<<","<<range[i].y<<" | ";
     }
+    ofstream F("graph.dot");
+    tree.print_dot(F);
     return 0;
 }

@@ -1,0 +1,71 @@
+digraph H {
+parent110[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port11'>"MBR: 1,1"</td><td port='port89'>"MBR: 8,9"</td><td port='port104'>"MBR: 10,4"</td></tr></table>
+>];
+parent111[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port11'>"MBR: 1,1"</td><td port='port310'>"MBR: 3,10"</td></tr></table>
+>];
+parent412[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port41'>"4,1"</td><td port='port15'>"1,5"</td><td port='port57'>"5,7"</td></tr></table>
+>];
+parent111:port11->parent412;
+parent3142[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port314'>"3,14"</td><td port='port410'>"4,10"</td></tr></table>
+>];
+parent111:port310->parent3142;
+parent110:port11->parent111;
+parent891[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port89'>"MBR: 8,9"</td><td port='port1111'>"MBR: 11,11"</td></tr></table>
+>];
+parent8132[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port813'>"8,13"</td><td port='port99'>"9,9"</td></tr></table>
+>];
+parent891:port89->parent8132;
+parent11112[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port1111'>"11,11"</td><td port='port1312'>"13,12"</td></tr></table>
+>];
+parent891:port1111->parent11112;
+parent110:port89->parent891;
+parent1041[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port104'>"MBR: 10,4"</td><td port='port106'>"MBR: 10,6"</td></tr></table>
+>];
+parent1322[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port132'>"13,2"</td><td port='port144'>"14,4"</td></tr></table>
+>];
+parent1041:port104->parent1322;
+parent1062[
+shape=plaintext
+label=<
+<table border='1' cellborder='1'>
+<tr><td port='port106'>"10,6"</td><td port='port158'>"15,8"</td></tr></table>
+>];
+parent1041:port106->parent1062;
+parent110:port104->parent1041;
+}
