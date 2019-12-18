@@ -29,6 +29,20 @@ bool sortbyx(Point a,Point b){
 bool sortbyy(Point a, Point b){
     return (a.y < b.y);
 }
+vector<Point> crear(vector<Point> points){
+    int maxx=points[0].x,minx=points[0].x,maxy=points[0].y,miny=points[0].y;
+    for(int i=0; i<points.size(); i++){
+        if(points[i].x > maxx)  maxx=points[i].x;
+        if(points[i].x < minx)  minx=points[i].x;
+        if(points[i].y > maxy)  maxy=points[i].y;
+        if(points[i].y < miny)  miny=points[i].y;
+    }
+    Point v1(minx,miny);
+    Point v2(minx,maxy);
+    Point v3(maxx,miny);
+    Point v4(maxx,maxy);
+    return (vector<Point> {v1,v2,v3,v4});
+}
 
 class Node;
 class MBR{
@@ -39,20 +53,6 @@ public:
     MBR(vector<Point> points,Node* child){
         this->vertices=crear(points);
         this->child=child;
-    }
-    vector<Point> crear(vector<Point> points){
-        int maxx=points[0].x,minx=maxx,maxy=points[0].y,miny=maxy;
-        for(int i=1; i<points.size(); i++){
-            if(points[i].x > maxx)  maxx=points[i].x;
-            if(points[i].x < minx)  minx=points[i].x;
-            if(points[i].y > maxy)  maxy=points[i].y;
-            if(points[i].y < miny)  miny=points[i].y;
-        }
-        Point v1(minx,miny);
-        Point v2(minx,maxy);
-        Point v3(maxx,miny);
-        Point v4(maxx,maxy);
-        return (vector<Point> {v1,v2,v3,v4});
     }
     bool contiene(Point p){
         if(vertices[0].x <= p.x &&
@@ -107,6 +107,10 @@ public:
     bool is_leaf;
     int deep;
     Node* parent;
+    MBR* MBRparent;
+    //debemos guardar la direccion del bmr parent
+    //para luego poder actualizarlo cuando hagamos un split
+    //en el overñaklsjdfñl
 public:
     Node(int deep){
         this->is_leaf=true;
@@ -138,7 +142,32 @@ public:
         }
         return result;
     }
-    Node* splitMBR(Node* node){
+    //algo falla
+    void actualizarMBR(Node* node){
+        if(node == this->root)
+            return;
+        if(node->is_leaf){
+            for(int i=0; i<node->parent->mbrs.size(); i++){
+                if((node->parent->mbrs[i].child) == node){
+                    node->parent->mbrs[i].vertices=crear(node->points);
+                    break;
+                }
+            }
+            actualizarMBR(node->parent);
+        }else{
+            for(int i=0; i<node->parent->mbrs.size(); i++){
+                if((node->parent->mbrs[i].child) == node){
+                    vector<Point> p;
+                    for(int j=0; j<node->mbrs.size(); j++)
+                        copy(node->mbrs[j].vertices.begin(),node->mbrs[j].vertices.end(),back_inserter(p));
+                    node->parent->mbrs[i].vertices=crear(p);
+                    break;
+                }
+            }
+            actualizarMBR(node->parent);
+        }
+    }
+    Node* splitMBR(Node*& node){
         int m = node->mbrs.size();
         int limit = ceil(0.4*capacidad);
         int bestPerimetro = 999999999;
@@ -170,16 +199,16 @@ public:
         }
         Node* newNode=new Node(node->deep);
         newNode->is_leaf=false;
-        newNode->mbrs=bestMBR2;
-        node->mbrs=bestMBR1;
+        newNode->mbrs = bestMBR2;
+        node->mbrs = bestMBR1;
         return newNode;
     }
-    Node* split(Node* node){
+    Node* split(Node*& node){
         if(!node->is_leaf)
             return splitMBR(node);
         int m=node->points.size();
         int limit=ceil(0.4*capacidad);
-        int bestPerimetro=maxPerimetro(node->points)*2;
+        int bestPerimetro=maxPerimetro(node->points)*5;
         vector<Point> bestMBR1,bestMBR2;
         for(int axis=0; axis<2; axis++){
             if(axis == 0)
@@ -200,9 +229,9 @@ public:
                 }
             }
         }
-        Node* newNode=new Node(node->deep);
-        newNode->points=bestMBR2;
-        node->points=bestMBR1;
+        Node* newNode = new Node(node->deep);
+        newNode->points = bestMBR2;
+        node->points = bestMBR1;
         return newNode;
     }
     void actualizarDeep(Node* node,int deep){
@@ -232,32 +261,47 @@ public:
             MBR mbr1(vec1,node);
             MBR mbr2(vec2,node2);
             newRoot->mbrs.push_back(mbr1);
+            node->MBRparent=&(newRoot->mbrs[0]);
             newRoot->mbrs.push_back(mbr2);
+            node2->MBRparent = &(newRoot->mbrs[1]);
             actualizarDeep(newRoot,0);
             this->root=newRoot;
-            return;
         }else{
-            Node* parent=node->parent;
-            vector<Point> vert;
-            if(node2->is_leaf)
-                vert=node2->points;
+            Node* padre=node->parent;
+            vector<Point> vert1,vert2;
+            if(node->is_leaf){
+                vert1=node->points;
+                vert2 = node2->points;
+            }
             else{
+                for(int i=0; i<node->mbrs.size(); i++)
+                    copy(node->mbrs[i].vertices.begin(), node->mbrs[i].vertices.end(), back_inserter(vert1));
                 for(int i=0; i<node2->mbrs.size(); i++){
-                    copy(node2->mbrs[i].vertices.begin(), node2->mbrs[i].vertices.end(), back_inserter(vert));
+                    copy(node2->mbrs[i].vertices.begin(), node2->mbrs[i].vertices.end(), back_inserter(vert2));
                 }
             }
-            MBR mbr2(vert,node2);
-            parent->mbrs.push_back(mbr2);
-            if(parent->mbrs.size() > this->capacidad){
-                overflow(parent);
+            MBR mbr1(vert1,node);
+            MBR mbr2(vert2,node2);
+            //MBR* mbr_ = node->MBRparent;//actualizaremos el mbr del primer nodo, ya existia
+            //*mbr_ = mbr1;
+            padre->mbrs.push_back(mbr2);
+            int pos = padre->mbrs.size()-1;
+            node2->parent = node->parent;
+            node2->MBRparent = &(padre->mbrs[pos]);//damos la direccion del bmr que contiene a node2
+            if(padre->mbrs.size() > this->capacidad){
+                overflow(padre);
             }
+            actualizarMBR(node);
+            //actualizarMBR(node2);
         }
     }
     void insert(Node* node,Point p){
         if(node->is_leaf){
             node->points.push_back(p);
-            if(node->points.size() > this->capacidad)
+            if(node->points.size() > this->capacidad){
                 overflow(node);
+            }
+            actualizarMBR(node);
         }else{
             Node* newNode=chooseSubtree(node,p);
             insert(newNode,p);
@@ -287,17 +331,16 @@ public:
     }
     void rangeQuery(Node* node,MBR range,vector<Point> &result){
         if(node->is_leaf){
+            cout<<" searh leaf"<<endl;
             for(int i=0; i<node->points.size(); i++){
                 cout<<"comparando: "<<node->points[i].x<<node->points[i].y<<endl;
                 if(range.contiene(node->points[i]))
                     result.push_back(node->points[i]);
             }
         }else{
+            cout<<" searh internal"<<endl;
             for(int i=0; i<node->mbrs.size(); i++){
-                //cout<<"MBR: ";
-                //for(int j=0; j<4; j++)
-                //cout<<node->mbrs[i].vertices[j].x<<"/"<<node->mbrs[i].vertices[j].y<<endl;
-                if(range.interseca(node->mbrs[i]))
+                if(node->mbrs[i].interseca(range) || range.interseca(node->mbrs[i]))
                     rangeQuery(node->mbrs[i].child,range,result);
             }
         }
@@ -312,6 +355,8 @@ public:
         Point v3(maxx,miny);
         Point v4(maxx,maxy);
         MBR range(vector<Point> {v1,v2,v3,v4},NULL);
+        cout<<range.vertices[0].x<<","<<range.vertices[0].y<<" ";
+        cout<<range.vertices[3].x<<","<<range.vertices[3].y<<endl;
         vector<Point> result;
         rangeQuery(this->root,range,result);
         return result;
@@ -323,27 +368,24 @@ int main(){
     Point p3(1,2);
     Point p4(3,3);
     vector<Point> verti{p1,p2,p3};
+    MBR recta(verti,NULL);
     Rtree tree(3);
-    tree.insert(p1);
-    tree.insert(p2);
-    tree.insert(p3);
-    tree.insert(p4);
-    tree.insert(Point(4,3));
-    tree.insert(Point(5,3));
-    tree.insert(Point(1,1));
-    tree.insert(Point(5,1));
-    tree.insert(Point(4,4));
     tree.insert(Point(1,5));
-    tree.insert(Point(2,1));
-    tree.insert(Point(1,3));
-    tree.insert(Point(3,1));
-    tree.insert(Point(3,2));
-    tree.insert(Point(4,2));
     tree.insert(Point(4,1));
-    tree.insert(Point(4,5));
-    tree.insert(Point(5,5));
+    tree.insert(Point(3,14));
+    tree.insert(Point(4,10));
+    tree.insert(Point(5,7));
+    tree.insert(Point(8,13));
+    tree.insert(Point(9,9));
+    tree.insert(Point(11,11));
+    tree.insert(Point(13,12));
+    tree.insert(Point(10,6));
+    tree.insert(Point(15,8));
+    tree.insert(Point(14,4));
+    tree.insert(Point(13,2));
     tree.print();
-    vector<Point> range=tree.rangeQuery(2,2,Point(3,3));
+    cout<<recta.contiene(Point(5,6))<<endl;
+    vector<Point> range=tree.rangeQuery(2,2,Point(3,10));
     cout<<range.size()<<endl;
     for(int i=0; i<range.size(); i++){
         cout<<range[i].x<<","<<range[i].y<<" | ";
