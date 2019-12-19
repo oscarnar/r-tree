@@ -262,9 +262,9 @@ public:
             MBR mbr1(vec1,node);
             MBR mbr2(vec2,node2);
             newRoot->mbrs.push_back(mbr1);
-            node->MBRparent=&(newRoot->mbrs[0]);
+            //node->MBRparent=&(newRoot->mbrs[0]);
             newRoot->mbrs.push_back(mbr2);
-            node2->MBRparent = &(newRoot->mbrs[1]);
+            //node2->MBRparent = &(newRoot->mbrs[1]);
             actualizarDeep(newRoot,0);
             this->root=newRoot;
         }else{
@@ -288,7 +288,7 @@ public:
             padre->mbrs.push_back(mbr2);
             int pos = padre->mbrs.size()-1;
             node2->parent = node->parent;
-            node2->MBRparent = &(padre->mbrs[pos]);//damos la direccion del bmr que contiene a node2
+            //node2->MBRparent = &(padre->mbrs[pos]);//damos la direccion del bmr que contiene a node2
             if(padre->mbrs.size() > this->capacidad){
                 overflow(padre);
             }
@@ -326,6 +326,21 @@ public:
                 print(node->mbrs[i].child);
             }
         }
+    }
+    void graph_py(Node* node,ostream &mbr,ostream &point){
+        if(node->is_leaf){
+            for(int i=0; i<node->points.size(); i++)
+                point<<node->points[i].x<<","<<node->points[i].y<<endl;
+        }else{
+            for(int i=0; i<node->mbrs.size(); i++){
+                for(int j=0; j<4; j++)
+                    mbr<<node->mbrs[i].vertices[j].x<<","<<node->mbrs[i].vertices[j].y<<endl;
+                graph_py(node->mbrs[i].child,mbr,point);
+            }
+        }
+    }
+    void graph_py(ostream &mbr,ostream &points){
+        return graph_py(this->root,mbr,points);
     }
     void print_dot(Node* node,ostream &os){
         if(node->is_leaf){
@@ -442,5 +457,9 @@ int main(){
     }
     ofstream F("graph.dot");
     tree.print_dot(F);
+    ofstream M("mbr.txt");
+    ofstream P("point.txt");
+    tree.graph_py(M,P);
+    system("python3 graph.py");
     return 0;
 }
